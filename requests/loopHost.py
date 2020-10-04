@@ -1,9 +1,9 @@
 # !/bin/python3
-# This is equivalent to /requests/loopHost.py
+# This is equivalent to /sockets/loopHost.py
 
 import sys
 import socket
-import json
+import requests
 from datetime import datetime
 
 # Define the target
@@ -31,26 +31,19 @@ print("Time started: " + str(datetime.now()))
 print("-" * 50)
 
 value = ''
-suffix = '/'
+path = '/'
+host = 'http://' + target + ':' + str(port)
 while True:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((target, port))
+    response = requests.get(host + path)
+    status_code = response.status_code
+    if status_code == 200:
+        json_res = response.json()
 
-    # Send get request to server
-    getRequest = f"GET {suffix} HTTP/1.0\r\nHost: {target}\r\n\r\n"
-    s.send(getRequest.encode('utf8'))
+        if json_res['value'] == 'end' and json_res['next'] == 'end':
+            break
 
-    # Retrieve data from get request
-    res = str(s.recv(4096), 'utf-8')  # print(s.recv(4096).decode("utf8"))
-    res_lines = res.splitlines()
-    last_line = res_lines[-1]
-    pair = json.loads(last_line)
-    if pair['value'] == 'end' and pair['next'] == 'end':
-        break
-    value = value + pair['value']
-    suffix = '/' + pair['next']
-    s.close()
+        value = value + json_res['value']
+        path = '/' + json_res['next']
 
 print(value)
-s.close()
 sys.exit()
